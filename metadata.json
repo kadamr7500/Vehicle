@@ -1,0 +1,6 @@
+{
+  "name": "Vehicle IN OUT Management System",
+  "description": "Track and manage industrial vehicle entry/exit with QR scanning, live status tracking, active duration alert states, dashboard insights, and downloadable PDF/Excel reports.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
