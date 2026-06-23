@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Download, FileSpreadsheet, FileText, Search, Calendar, RefreshCw, Layers } from "lucide-react";
 import { VehicleMaster, VehicleTransaction, VehicleHistory } from "../types";
-import { buildReportDatasets, exportReportToExcel, exportReportToPdf } from "../utils/reportUtils";
+import { buildReportDatasets } from "../utils/reportData";
 
 interface ReportsViewProps {
   vehicles: VehicleMaster[];
@@ -20,6 +20,7 @@ export default function ReportsView({
 }: ReportsViewProps) {
   const [activeReport, setActiveReport] = useState<ReportType>("daily");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isExporting, setIsExporting] = useState(false);
 
   // Build the current dataset dynamically using our reporting service
   const currentReportData = buildReportDatasets(
@@ -38,23 +39,35 @@ export default function ReportsView({
     );
   });
 
-  const triggerPdfDownload = () => {
-    exportReportToPdf(
-      currentReportData.title,
-      currentReportData.headers,
-      filteredRows,
-      `VMS_Report_${activeReport}_${new Date().toISOString().split("T")[0]}`,
-      currentReportData.subtitle
-    );
+  const triggerPdfDownload = async () => {
+    setIsExporting(true);
+    try {
+      const { exportReportToPdf } = await import("../utils/reportUtils");
+      exportReportToPdf(
+        currentReportData.title,
+        currentReportData.headers,
+        filteredRows,
+        `VMS_Report_${activeReport}_${new Date().toISOString().split("T")[0]}`,
+        currentReportData.subtitle
+      );
+    } finally {
+      setIsExporting(false);
+    }
   };
 
-  const triggerExcelDownload = () => {
-    exportReportToExcel(
-      currentReportData.title,
-      currentReportData.headers,
-      filteredRows,
-      `VMS_Report_${activeReport}_${new Date().toISOString().split("T")[0]}`
-    );
+  const triggerExcelDownload = async () => {
+    setIsExporting(true);
+    try {
+      const { exportReportToExcel } = await import("../utils/reportUtils");
+      exportReportToExcel(
+        currentReportData.title,
+        currentReportData.headers,
+        filteredRows,
+        `VMS_Report_${activeReport}_${new Date().toISOString().split("T")[0]}`
+      );
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const reportMeta = {
@@ -97,7 +110,7 @@ export default function ReportsView({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
+
         {/* Selecting Report List Sidebar Column */}
         <div className="lg:col-span-4 bg-white border border-slate-200 p-4 rounded-2xl shadow-sm space-y-3">
           <span className="text-xxs font-black text-slate-400 uppercase tracking-wider font-mono block pb-2 border-b border-slate-100 mb-2">
@@ -113,18 +126,16 @@ export default function ReportsView({
                   setSearchQuery("");
                 }}
                 id={`btn-select-report-${key}`}
-                className={`w-full text-left p-3.5 rounded-xl border transition cursor-pointer flex flex-col gap-1 ${
-                  isSelected
-                    ? "bg-slate-900 border-slate-950 text-white shadow-sm"
-                    : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
-                }`}
+                className={`w-full text-left p-3.5 rounded-xl border transition cursor-pointer flex flex-col gap-1 ${isSelected
+                  ? "bg-slate-900 border-slate-950 text-white shadow-sm"
+                  : "bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
+                  }`}
               >
                 <span className="text-xs font-black uppercase tracking-wide font-sans">
                   {meta.label}
                 </span>
-                <span className={`text-xxs font-medium block font-sans ${
-                  isSelected ? "text-slate-300" : "text-slate-500"
-                }`}>
+                <span className={`text-xxs font-medium block font-sans ${isSelected ? "text-slate-300" : "text-slate-500"
+                  }`}>
                   {meta.desc}
                 </span>
               </button>
@@ -134,7 +145,7 @@ export default function ReportsView({
 
         {/* Live Interactive Preview and download actions column */}
         <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
-          
+
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-3 border-b border-slate-100">
             <div>
               <p className="text-xxs text-blue-600 font-black uppercase tracking-widest font-mono">Interactive preview</p>
@@ -150,21 +161,23 @@ export default function ReportsView({
             <div className="flex items-center gap-2 self-start md:self-center">
               <button
                 onClick={triggerExcelDownload}
+                disabled={isExporting}
                 id="btn-export-excel"
-                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xxs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs transition"
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-300 disabled:cursor-not-allowed text-white rounded-xl text-xxs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs transition"
                 title="Download Excel Sheet"
               >
                 <FileSpreadsheet className="w-4 h-4" />
-                <span>Excel</span>
+                <span>{isExporting ? "Exporting" : "Excel"}</span>
               </button>
               <button
                 onClick={triggerPdfDownload}
+                disabled={isExporting}
                 id="btn-export-pdf"
-                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xxs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs transition"
+                className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl text-xxs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-xs transition"
                 title="Download PDF Ledger"
               >
                 <FileText className="w-4 h-4" />
-                <span>PDF Ledger</span>
+                <span>{isExporting ? "Exporting" : "PDF Ledger"}</span>
               </button>
             </div>
           </div>

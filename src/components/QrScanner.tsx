@@ -63,35 +63,45 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+
       {/* SERIAL PORT SCANNER CONNECTION CONTROL CENTER PANEL */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[550px]">
-        
+      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/70 flex flex-col min-h-[560px]">
+
         {/* Card Header with Connection Indicator */}
-        <div className="bg-slate-900 px-5 py-4 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-blue-400" />
-            <span className="text-xs font-black text-white tracking-widest uppercase font-mono">
-              Web Serial COM Port Link
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`} />
-            <span className="text-[10px] font-bold text-slate-300 font-mono uppercase">
-              {isConnected ? "Hardware Linked" : isConnecting ? "Linking..." : "Offline / Unlinked"}
-            </span>
+        <div className="relative overflow-hidden bg-slate-950 px-5 py-5 shrink-0">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(37,99,235,0.34),_transparent_18rem)]" />
+          <div className="relative flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500 text-white shadow-lg shadow-blue-950/30">
+                <Cpu className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-sm font-black text-white tracking-widest uppercase">
+                  Web Serial COM Port Link
+                </span>
+                <p className="mt-1 text-[11px] font-semibold text-slate-400">Direct scanner-gun hardware bridge</p>
+              </div>
+            </div>
+            <div className={`flex items-center gap-2 rounded-full border px-3 py-1.5 ${isConnected ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200" : "border-slate-700 bg-white/5 text-slate-300"}`}>
+              <span className={`w-2.5 h-2.5 rounded-full ${isConnected ? "bg-emerald-400 animate-pulse" : isConnecting ? "bg-amber-400 animate-pulse" : "bg-slate-500"}`} />
+              <span className="text-[10px] font-black uppercase tracking-[0.16em]">
+                {isConnected ? "Hardware Linked" : isConnecting ? "Linking" : "Offline"}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Card Content Area split to options and live serial buffer logs */}
-        <div className="flex-1 overflow-y-auto p-5 flex flex-col justify-between space-y-4">
-          
+        <div className="flex-1 overflow-y-auto p-5 flex flex-col justify-between space-y-5 bg-gradient-to-b from-white to-slate-50/80">
+
           <div className="space-y-4 flex-1">
-            
-            <p className="text-xs text-slate-500 font-sans leading-relaxed">
-              Connect external industrial <strong>com port QR scanners</strong> or barcode reader guns. This utilizes direct browser <strong>serial bus communication</strong> to receive logs without slow camera feeds.
-            </p>
+
+            <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+              <p className="text-xs text-slate-600 font-sans leading-relaxed">
+                Connect external industrial <strong>COM port QR scanners</strong> or barcode reader guns. Serial bus capture gives fast, camera-free return scans for gate operators.
+              </p>
+            </div>
 
             {/* If serial API is unsupported or has permission errors inside iframe */}
             {errorConst && (
@@ -107,9 +117,9 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
             )}
 
             {/* Connection configuration controls form elements */}
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <div className="p-4 bg-white border border-slate-200 rounded-2xl space-y-4 shadow-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                
+
                 {/* Port Selection Dropdown */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -166,7 +176,7 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
                     type="button"
                     onClick={connect}
                     disabled={isConnecting}
-                    className="w-full py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-350 text-white rounded-lg text-xxs font-black uppercase tracking-widest cursor-pointer transition shadow-xs flex items-center justify-center gap-1 font-sans"
+                    className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-350 text-white rounded-xl text-xxs font-black uppercase tracking-widest cursor-pointer transition shadow-lg shadow-blue-200 flex items-center justify-center gap-1 font-sans"
                   >
                     {isConnecting ? "Requesting COM Link..." : "Link Selected COM Port"}
                   </button>
@@ -174,7 +184,7 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
                   <button
                     type="button"
                     onClick={disconnect}
-                    className="w-full py-1.5 bg-rose-600 hover:bg-rose-550 text-white rounded-lg text-xxs font-black uppercase tracking-widest cursor-pointer transition shadow-xs flex items-center justify-center gap-1 font-sans"
+                    className="w-full py-2.5 bg-rose-600 hover:bg-rose-550 text-white rounded-xl text-xxs font-black uppercase tracking-widest cursor-pointer transition shadow-lg shadow-rose-200 flex items-center justify-center gap-1 font-sans"
                   >
                     <span>Disconnect Active Port</span>
                   </button>
@@ -249,7 +259,7 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
                   </div>
                 )}
               </div>
-              
+
               {!serialSupported && (
                 <p className="text-[9px] text-amber-600 font-medium font-sans">
                   * Browsers like Chrome or Edge required to activate navigator.serial APIs in full scale.
@@ -258,7 +268,7 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
             </div>
 
             {/* Keyboard wedge block fallback - absolute guarantee of hardware support */}
-            <form onSubmit={handleWedgeSubmit} className="space-y-1.5">
+            <form onSubmit={handleWedgeSubmit} className="space-y-2 rounded-2xl border border-indigo-100 bg-indigo-50/70 p-4">
               <label className="block text-xxs font-black text-indigo-605 uppercase tracking-widest font-mono text-indigo-600">
                 Keyboard Wedge Scanner Feed input
               </label>
@@ -285,7 +295,7 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
           </div>
 
           {/* Terminal Console Debug Log feedback */}
-          <div className="space-y-1 pt-3 border-t border-slate-100 shrink-0">
+          <div className="space-y-2 pt-4 border-t border-slate-200 shrink-0">
             <span className="text-[9px] font-black text-slate-400 uppercase tracking-wide font-mono flex items-center gap-1 justify-between">
               <span className="flex items-center gap-1">
                 <Terminal className="w-3.5 h-3.5 text-blue-500" /> Web Serial COM Diagnostics Terminal
@@ -294,7 +304,7 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
                 Buffer size: {terminalLogs.length}
               </span>
             </span>
-            <div className="bg-slate-950 p-2.5 rounded-lg font-mono text-[9px] h-24 overflow-y-auto space-y-1 text-left">
+            <div className="bg-slate-950 p-3 rounded-2xl font-mono text-[9px] h-28 overflow-y-auto space-y-1 text-left shadow-inner shadow-black/40 ring-1 ring-slate-800">
               {terminalLogs.length === 0 ? (
                 <div className="text-slate-600 italic font-mono">[Terminal offline. Awaiting connection or in-memory injection scan]</div>
               ) : (
@@ -330,8 +340,8 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
       </div>
 
       {/* SIMULATOR COMPONENT */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-[550px]">
-        <div className="bg-slate-50 px-5 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
+      <div className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-slate-200/70 flex flex-col min-h-[560px]">
+        <div className="bg-gradient-to-r from-slate-50 to-indigo-50 px-5 py-5 border-b border-slate-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
             <h3 className="text-sm font-bold text-slate-800 tracking-wide uppercase font-sans">
@@ -364,7 +374,7 @@ export default function QrScanner({ onScanSuccess, activeMode }: QrScannerProps)
                   key={vehicle.id}
                   onClick={() => injectSimulatedScan(vehicle.qr_code)}
                   id={`simulator-card-${vehicle.id}`}
-                  className="p-3 border border-slate-200 hover:border-indigo-400 rounded-xl bg-white hover:bg-slate-50/20 cursor-pointer shadow-xs transition duration-200 group flex flex-col justify-between text-left"
+                  className="p-4 border border-slate-200 hover:border-indigo-400 rounded-2xl bg-white hover:bg-indigo-50/40 cursor-pointer shadow-sm hover:shadow-lg transition duration-200 group flex flex-col justify-between text-left"
                 >
                   <div className="text-left">
                     <div className="flex items-center justify-between mb-1.5">

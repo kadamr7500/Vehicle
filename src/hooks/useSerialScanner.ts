@@ -15,6 +15,12 @@ export interface SerialTerminalLine {
 }
 
 export function useSerialScanner(onScanSuccess: (code: string) => void) {
+  const persistScannerStatus = (status: "linked" | "linking" | "offline") => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("vms_scanner_status", status);
+    window.dispatchEvent(new Event("vms-scanner-status"));
+  };
+
   const [serialSupported, setSerialSupported] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
@@ -76,7 +82,7 @@ export function useSerialScanner(onScanSuccess: (code: string) => void) {
 
   const disconnect = useCallback(async () => {
     keepReadingRef.current = false;
-    
+
     if (readerRef.current) {
       try {
         await readerRef.current.cancel();
@@ -97,6 +103,7 @@ export function useSerialScanner(onScanSuccess: (code: string) => void) {
     readerRef.current = null;
     setIsConnected(false);
     setIsConnecting(false);
+    persistScannerStatus("offline");
     addLog("system", "COM Port interface closed.");
   }, [addLog]);
 
@@ -135,7 +142,7 @@ export function useSerialScanner(onScanSuccess: (code: string) => void) {
             // Scanners send lines ending with \r carriage returns or \n line feeds
             if (buffer.includes("\n") || buffer.includes("\r")) {
               const lines = buffer.split(/[\r\n]+/);
-              
+
               // If the buffer ends with a delimiter, all segments are complete
               const endsWithLineBreak = /[\r\n]$/.test(buffer);
               const completedSegments = endsWithLineBreak ? lines : lines.slice(0, lines.length - 1);
@@ -175,6 +182,7 @@ export function useSerialScanner(onScanSuccess: (code: string) => void) {
 
     setErrorConst(null);
     setIsConnecting(true);
+    persistScannerStatus("linking");
 
     try {
       let port;
@@ -189,7 +197,7 @@ export function useSerialScanner(onScanSuccess: (code: string) => void) {
       portRef.current = port;
 
       addLog("system", `Attempting COM link: Baud=${config.baudRate} bps, DataBits=${config.dataBits}, Parity=${config.parity}, StopBits=${config.stopBits}...`);
-      
+
       await port.open({
         baudRate: config.baudRate,
         dataBits: config.dataBits,
@@ -200,6 +208,7 @@ export function useSerialScanner(onScanSuccess: (code: string) => void) {
 
       setIsConnected(true);
       setIsConnecting(false);
+      persistScannerStatus("linked");
       keepReadingRef.current = true;
       addLog("system", `COM link established with external QR Scanner hardware at ${config.baudRate} baud rate.`);
 
@@ -209,12 +218,13 @@ export function useSerialScanner(onScanSuccess: (code: string) => void) {
       console.error("Web Serial connection exception:", err);
       setIsConnecting(false);
       setIsConnected(false);
+      persistScannerStatus("offline");
 
       const errStr = String(err.message || "").toLowerCase();
       let readableMsg = err.message || "Failed to link COM port.";
 
       if (
-        err.name === "SecurityError" || 
+        err.name === "SecurityError" ||
         errStr.includes("permission") ||
         errStr.includes("policy") ||
         errStr.includes("disallowed") ||
