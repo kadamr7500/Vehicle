@@ -14,7 +14,7 @@ export interface SerialTerminalLine {
   text: string;
 }
 
-export function useSerialScanner(onScanSuccess: (code: string) => void) {
+export function useSerialScanner(onScanSuccess: (code: string) => void, storagePrefix: string = "inlet") {
   const [serialSupported, setSerialSupported] = useState<boolean>(false);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
@@ -22,20 +22,47 @@ export function useSerialScanner(onScanSuccess: (code: string) => void) {
   const [terminalLogs, setTerminalLogs] = useState<SerialTerminalLine[]>([]);
   const [lastCode, setLastCode] = useState<string | null>(null);
 
-  const [config, setConfig] = useState<SerialConfig>({
-    baudRate: 9600,
-    dataBits: 8,
-    stopBits: 1,
-    parity: "none",
-    flowControl: "none",
+  const [config, setConfig] = useState<SerialConfig>(() => {
+    try {
+      const saved = localStorage.getItem(`vms_scanner_${storagePrefix}_config`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      baudRate: 9600,
+      dataBits: 8,
+      stopBits: 1,
+      parity: "none",
+      flowControl: "none",
+    };
   });
 
+  const saveConfig = useCallback((newConfig: SerialConfig) => {
+    setConfig(newConfig);
+    try {
+      localStorage.setItem(`vms_scanner_${storagePrefix}_config`, JSON.stringify(newConfig));
+    } catch (e) {}
+  }, [storagePrefix]);
+
+  const [portRef_state, setPortRefState] = useState<any>(null); // helper state to trigger render on disconnect
   const portRef = useRef<any>(null);
   const readerRef = useRef<any>(null);
   const keepReadingRef = useRef<boolean>(true);
 
   const [availablePorts, setAvailablePorts] = useState<any[]>([]);
-  const [selectedPortIndex, setSelectedPortIndex] = useState<number>(-1);
+  const [selectedPortIndex, setSelectedPortIndex] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem(`vms_scanner_${storagePrefix}_port_idx`);
+      if (saved) return parseInt(saved);
+    } catch (e) {}
+    return -1;
+  });
+
+  const selectPortIndex = useCallback((idx: number) => {
+    setSelectedPortIndex(idx);
+    try {
+      localStorage.setItem(`vms_scanner_${storagePrefix}_port_idx`, String(idx));
+    } catch (e) {}
+  }, [storagePrefix]);
 
   const refreshPorts = useCallback(async () => {
     if (typeof window !== "undefined" && "serial" in navigator) {
@@ -264,14 +291,14 @@ export function useSerialScanner(onScanSuccess: (code: string) => void) {
     terminalLogs,
     lastCode,
     config,
-    setConfig,
+    setConfig: saveConfig,
     connect,
     disconnect,
     injectSimulatedScan,
     feedKeyboardWedge,
     availablePorts,
     selectedPortIndex,
-    setSelectedPortIndex,
+    setSelectedPortIndex: selectPortIndex,
     refreshPorts,
   };
 }

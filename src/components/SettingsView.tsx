@@ -9,6 +9,136 @@ interface SettingsViewProps {
   currentUser: any;
   onResetDatabase: () => void;
   vehicles: VehicleMaster[];
+  inletScanner?: any;
+  outletScanner?: any;
+}
+
+// Industry grade serial config control block subcomponent
+function ScannerControlBlock({
+  title,
+  scanner,
+  colorClass,
+  icon: Icon
+}: {
+  title: string;
+  scanner: any;
+  colorClass: string;
+  icon: any;
+}) {
+  if (!scanner) return null;
+
+  return (
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <Icon className={`w-4.5 h-4.5 ${colorClass}`} />
+          <h3 className="text-xs font-black text-slate-800 tracking-wider uppercase font-mono">
+            {title}
+          </h3>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className={`w-1.5 h-1.5 rounded-full ${scanner.isConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-300"}`} />
+          <span className={`text-[9px] font-mono font-bold uppercase ${scanner.isConnected ? "text-emerald-600" : "text-slate-400"}`}>
+            {scanner.isConnected ? "LINKED" : "UNLINKED"}
+          </span>
+        </div>
+      </div>
+
+      {scanner.errorConst && (
+        <p className="text-xxs font-mono font-bold text-rose-500 bg-rose-50 p-2.5 rounded-xl border border-rose-150 leading-normal">
+          {scanner.errorConst}
+        </p>
+      )}
+
+      {/* Main Connection Controls */}
+      {!scanner.isConnected ? (
+        <div className="space-y-3">
+          <p className="text-[10px] text-slate-500 leading-normal font-sans">
+            Connect an external serial hardware reader. Click refresh if ports do not list automatically.
+          </p>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[8.5px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1">
+                Baud Rate
+              </label>
+              <select
+                value={scanner.config.baudRate}
+                onChange={(e) => scanner.setConfig({ ...scanner.config, baudRate: parseInt(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-xxs font-mono font-bold text-slate-700"
+              >
+                <option value="4800">4800 baud</option>
+                <option value="9600">9600 baud</option>
+                <option value="19200">19200 baud</option>
+                <option value="38450">38450 baud</option>
+                <option value="57600">57600 baud</option>
+                <option value="115200">115200 baud</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[8.5px] font-mono font-black text-slate-400 uppercase tracking-widest mb-1">
+                Port Scan
+              </label>
+              <button
+                type="button"
+                onClick={scanner.refreshPorts}
+                className="w-full bg-slate-50 hover:bg-slate-100 border border-slate-205 rounded-lg px-2 py-1.7 text-xxs font-mono font-bold text-slate-600 text-left truncate flex items-center justify-between cursor-pointer"
+              >
+                <span>Ports</span>
+                <span className="text-[8px] px-1 bg-slate-200 rounded text-slate-500">RE-LIST</span>
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={scanner.connect}
+            disabled={scanner.isConnecting}
+            className="w-full py-2 bg-slate-900 border border-slate-950 hover:bg-slate-800 disabled:bg-slate-100 text-white rounded-xl text-xxs font-black uppercase tracking-widest transition cursor-pointer flex items-center justify-center gap-1.5 shadow-sm"
+          >
+            {scanner.isConnecting ? "LINKING PORT..." : "STRIKE SERIAL CONNECTION"}
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="bg-emerald-50/50 border border-emerald-100 p-2.5 rounded-xl flex items-center justify-between">
+            <div>
+              <span className="text-[8.5px] font-mono font-black text-emerald-600 block uppercase leading-none">ACTIVE INTEGRATION</span>
+              <span className="text-xxs font-sans font-extrabold text-slate-700 block mt-1">Ready at {scanner.config.baudRate} bps</span>
+            </div>
+            <button
+              type="button"
+              onClick={scanner.disconnect}
+              className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 border border-rose-150 text-rose-700 rounded-lg text-xxs font-black uppercase tracking-wider transition cursor-pointer"
+            >
+              Unlink
+            </button>
+          </div>
+
+          {/* Diagnostic Raw Live Console */}
+          <div className="space-y-1">
+            <span className="text-[8px] font-mono font-black text-slate-400 uppercase tracking-widest block">RAW COM LINK MONITOR</span>
+            <div className="bg-[#0B0F19] text-emerald-400 p-2 rounded-xl text-[9px] font-mono h-24 overflow-y-auto space-y-0.5 scrollbar-thin">
+              {scanner.terminalLogs.length === 0 ? (
+                <span className="text-slate-500 italic block p-1">No scan actions registered in buffer...</span>
+              ) : (
+                scanner.terminalLogs.map((log: any, idx: number) => (
+                  <div key={idx} className="flex items-start gap-1 p-0.5 border-b border-slate-900/50">
+                    <span className="text-slate-500 font-bold shrink-0">{log.timestamp.split("T")[1].slice(0, 8)}</span>
+                    <span className={log.source === "system" ? "text-blue-300 font-bold" : log.source === "error" ? "text-rose-450" : "text-emerald-300 font-extrabold font-mono"}>
+                      [{log.source.toUpperCase()}] {log.text}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function SettingsView({
@@ -17,6 +147,8 @@ export default function SettingsView({
   currentUser,
   onResetDatabase,
   vehicles,
+  inletScanner,
+  outletScanner,
 }: SettingsViewProps) {
   const [overstay, setOverstay] = useState<number>(config.overstayHours);
   const [backupCheck, setBackupCheck] = useState<boolean>(config.autoBackupEnabled);
@@ -511,7 +643,7 @@ export default function SettingsView({
     <div className="space-y-6">
       {/* Header */}
       <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2 font-display">
           SYSTEM PARAMETERS & CONFIGURATIONS
         </h1>
         <p className="text-xs text-slate-500 font-sans mt-0.5">
@@ -536,6 +668,30 @@ export default function SettingsView({
           <span className="font-sans font-bold">{message.text}</span>
         </div>
       )}
+
+      {/* DUAL HARDWARE SCANNER PORT CONFIGURATORS */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 pb-1 border-b border-slate-100">
+          <QrCode className="w-4.5 h-4.5 text-blue-600" />
+          <h3 className="text-xs font-black text-slate-800 tracking-wider uppercase font-mono">
+            Gatehouse Reader Integrations (COM / USB)
+          </h3>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <ScannerControlBlock
+            title="Inlet Scanner Configuration (Gate-In)"
+            scanner={inletScanner}
+            colorClass="text-blue-500"
+            icon={QrCode}
+          />
+          <ScannerControlBlock
+            title="Outlet Scanner Configuration (Gate-Out)"
+            scanner={outletScanner}
+            colorClass="text-rose-500"
+            icon={QrCode}
+          />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         

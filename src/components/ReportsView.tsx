@@ -88,7 +88,7 @@ export default function ReportsView({
     <div className="space-y-6">
       {/* Header */}
       <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2 font-display">
           PLANT LOGISTICS REPORT CENTER
         </h1>
         <p className="text-xs text-slate-500 font-sans mt-0.5">

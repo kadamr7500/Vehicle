@@ -159,10 +159,10 @@ export default function VehicleMasterView({
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2 font-display">
             VEHICLE MASTER DIRECTORY
           </h1>
-          <p className="text-xs text-slate-500 font-sans mt-0.5 font-sans">
+          <p className="text-xs text-slate-500 font-sans mt-0.5">
             Maintain permanent registries of driver associations, operators, vehicle types, and active gate passes.
           </p>
         </div>

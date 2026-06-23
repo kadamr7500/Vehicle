@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Truck, Navigation, CheckSquare, Clock, AlertTriangle, ArrowRight, ShieldAlert, CalendarRange, CheckCircle2, ChevronRight, User } from "lucide-react";
 import { VehicleMaster, VehicleTransaction } from "../types";
 
@@ -41,7 +41,23 @@ export default function DashboardView({
   onNavigate,
   overstayHoursThreshold
 }: DashboardViewProps) {
-  const now = useMemo(() => new Date("2026-06-22T08:46:33-07:00"), []);
+  const [currentTime, setCurrentTime] = useState<Date>(() => {
+    const baseTime = new Date("2026-06-22T08:46:33-07:00");
+    const appLoadTime = (window as any).appStartTimestamp || Date.now();
+    const elapsed = Date.now() - appLoadTime;
+    return new Date(baseTime.getTime() + elapsed);
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const baseTime = new Date("2026-06-22T08:46:33-07:00");
+      const appLoadTime = (window as any).appStartTimestamp || Date.now();
+      const elapsed = Date.now() - appLoadTime;
+      setCurrentTime(new Date(baseTime.getTime() + elapsed));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   const todayStr = "2026-06-22";
 
   // Calculate dynamic dashboard statistics matching reversed company dispatch-and-return system
@@ -76,7 +92,9 @@ export default function DashboardView({
       const departureTime = tx.out_time ? new Date(tx.out_time).getTime() : 0;
       if (!departureTime) return;
 
-      const diffHrs = (now.getTime() - departureTime) / (1000 * 60 * 60);
+      const isSeeded = departureTime < new Date("2026-06-23T00:00:00Z").getTime();
+      const referenceNow = isSeeded ? currentTime.getTime() : Date.now();
+      const diffHrs = (referenceNow - departureTime) / (1000 * 60 * 60);
 
       if (diffHrs > overstayHoursThreshold) {
         totalOverstay++;
@@ -92,7 +110,7 @@ export default function DashboardView({
       totalOverstay,
       overstayList: overstayList.sort((a, b) => b.stayHours - a.stayHours)
     };
-  }, [vehicles, transactions, now, overstayHoursThreshold]);
+  }, [vehicles, transactions, currentTime, overstayHoursThreshold]);
 
   // Recalculate daily trip dispatch volume counts dynamically (Past 7 Days: June 16 - June 22)
   const dailyChartData = useMemo(() => {
@@ -249,14 +267,14 @@ export default function DashboardView({
       {/* Visual banner and subtitle greeting card */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 pb-5">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2 font-display">
             PLANT DISPATCH & WORKFLOW DASHBOARD
           </h1>
           <p className="text-xs text-slate-500 font-sans mt-0.5">
             System status monitoring active outward dispatches, vehicle returns, and today's supplier trips volume statistics.
           </p>
         </div>
-        <div className="flex items-center gap-2 text-xxs font-mono font-bold bg-[#EFF2F5] border border-slate-200 px-3 py-1.5 rounded-lg text-slate-700">
+        <div className="flex items-center gap-2 text-xxs font-mono font-bold bg-[#EFF2F5] border border-slate-200 px-3 py-1.5 rounded-xl text-slate-700 shadow-xxs">
           <CalendarRange className="w-4 h-4 text-slate-500" />
           <span>TODAY CYCLE: JUNE 22, 2026</span>
         </div>
@@ -266,61 +284,61 @@ export default function DashboardView({
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         
         {/* Metric 1 */}
-        <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xxs flex flex-col justify-between hover:shadow-xs transition duration-200">
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs flex flex-col justify-between hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xxs font-black uppercase tracking-wider font-mono">Available in Plant</span>
+            <span className="text-xxs font-black uppercase tracking-wider font-mono text-slate-400">Available in Plant</span>
             <span className="p-1 px-2 text-[10px] bg-emerald-50 text-emerald-700 font-bold rounded-lg border border-emerald-200">IN</span>
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-900 font-mono tracking-tight">{stats.totalInsideAvailable}</h2>
-            <p className="text-[10px] text-slate-400 font-sans mt-1">Vehicles inside company yard</p>
+            <h2 className="text-3xl font-black text-slate-900 font-mono tracking-tight">{stats.totalInsideAvailable}</h2>
+            <p className="text-[10px] text-slate-450 font-sans mt-1">Vehicles inside company yard</p>
           </div>
         </div>
 
         {/* Metric 2 */}
-        <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xxs flex flex-col justify-between hover:shadow-xs transition duration-200">
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs flex flex-col justify-between hover:border-amber-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xxs font-black uppercase tracking-wider font-mono">Out with Suppliers</span>
+            <span className="text-xxs font-black uppercase tracking-wider font-mono text-slate-400">Out with Suppliers</span>
             <span className="p-1 px-2 text-[10px] bg-amber-50 text-amber-700 font-bold rounded-lg border border-amber-200 animate-pulse">OUT</span>
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-900 font-mono tracking-tight">{stats.totalOutNow}</h2>
-            <p className="text-[10px] text-slate-400 font-sans mt-1">Vehicles out delivering</p>
+            <h2 className="text-3xl font-black text-slate-900 font-mono tracking-tight">{stats.totalOutNow}</h2>
+            <p className="text-[10px] text-slate-450 font-sans mt-1">Vehicles out delivering</p>
           </div>
         </div>
 
         {/* Metric 3 */}
-        <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xxs flex flex-col justify-between hover:shadow-xs transition duration-200">
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs flex flex-col justify-between hover:border-blue-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xxs font-black uppercase tracking-wider font-mono">Trips Leaving Today</span>
+            <span className="text-xxs font-black uppercase tracking-wider font-mono text-slate-400">Trips Leaving Today</span>
             <Truck className="w-4 h-4 text-indigo-500" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-900 font-mono tracking-tight">{stats.totalDispatchesToday}</h2>
-            <p className="text-[10px] text-slate-400 font-sans mt-1">Dispatches sent out today</p>
+            <h2 className="text-3xl font-black text-slate-900 font-mono tracking-tight">{stats.totalDispatchesToday}</h2>
+            <p className="text-[10px] text-slate-450 font-sans mt-1">Dispatches sent out today</p>
           </div>
         </div>
 
         {/* Metric 4 */}
-        <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xxs flex flex-col justify-between hover:shadow-xs transition duration-200">
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs flex flex-col justify-between hover:border-emerald-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xxs font-black uppercase tracking-wider font-mono">Truck Returns Today</span>
+            <span className="text-xxs font-black uppercase tracking-wider font-mono text-slate-400">Truck Returns Today</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-slate-900 font-mono tracking-tight">{stats.totalReturnsToday}</h2>
-            <p className="text-[10px] text-slate-400 font-sans mt-1">Completed trips back to company</p>
+            <h2 className="text-3xl font-black text-slate-900 font-mono tracking-tight">{stats.totalReturnsToday}</h2>
+            <p className="text-[10px] text-slate-455 font-sans mt-1">Completed trips back to company</p>
           </div>
         </div>
 
         {/* Metric 5 */}
-        <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xxs flex col-span-2 lg:col-span-1 border-rose-100 bg-rose-50/20 flex-col justify-between hover:shadow-xs transition duration-200">
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-xs flex col-span-2 lg:col-span-1 border-rose-100 bg-rose-50/20 flex-col justify-between hover:border-rose-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300">
           <div className="flex items-center justify-between text-rose-800 mb-2">
             <span className="text-xxs font-black uppercase tracking-wider font-mono">Delayed Outside</span>
             <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-rose-600 font-mono tracking-tight">{stats.totalOverstay}</h2>
+            <h2 className="text-3xl font-black text-rose-600 font-mono tracking-tight">{stats.totalOverstay}</h2>
             <p className="text-[10px] text-rose-500 font-sans mt-1">Overstaying {overstayHoursThreshold} hrs at supplier</p>
           </div>
         </div>
@@ -468,28 +486,28 @@ export default function DashboardView({
       </div>
 
       {/* Fleet Vehicles and Daily Trips Tracker (Fulfills the user requirement: "din me uska trip kitna hua hai") */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-slate-100 pb-3 gap-2">
+      <div className="bg-white border border-slate-200 rounded-3xl shadow-xs p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-slate-100 pb-4 gap-2">
           <div>
-            <h3 className="text-sm font-black text-slate-900 tracking-wider uppercase font-sans">
-              FLEET STATUS & DAILY TRIPS LEDGER (Din me trip kitna hua?)
+            <h3 className="text-sm font-black text-slate-900 tracking-wider uppercase font-display">
+              FLEET STATUS & DAILY TRIPS LEDGER
             </h3>
-            <p className="text-xxs text-slate-500 font-sans">
-              Real-time available fleet tracking showing vehicle locations, destination suppliers, and trip completion progress today.
+            <p className="text-[10px] text-slate-400 font-mono uppercase tracking-wider mt-0.5">
+              Real-time tracking of vehicle locations, supplier dispatches, and daily trip counters.
             </p>
           </div>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => onNavigate("Vehicle Out")}
+              onClick={() => onNavigate("Vehicle OUT")}
               id="dash-quick-dispatch"
-              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xxs font-black uppercase tracking-wide cursor-pointer shadow-xs transition"
+              className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xxs font-extrabold uppercase tracking-widest cursor-pointer shadow-sm hover:shadow-md active:scale-98 transition duration-200"
             >
               Dispatch OUT
             </button>
             <button
-              onClick={() => onNavigate("Vehicle In")}
+              onClick={() => onNavigate("Vehicle IN")}
               id="dash-quick-return"
-              className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xxs font-black uppercase tracking-wide cursor-pointer shadow-xs transition"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xxs font-extrabold uppercase tracking-widest cursor-pointer shadow-sm hover:shadow-md active:scale-98 transition duration-200"
             >
               Return IN
             </button>

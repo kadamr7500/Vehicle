@@ -1,5 +1,57 @@
 import { User, VehicleMaster, VehicleTransaction, VehicleHistory, AuditLog, SystemConfig } from "./types";
 
+// Safe storage helpers with in-memory fallbacks to prevent SecurityError in sandboxed iframes
+const memoryStorage: Record<string, string> = {};
+const memorySessionStorage: Record<string, string> = {};
+
+export const safeLocalStorage = {
+  getItem(key: string): string | null {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      return memoryStorage[key] || null;
+    }
+  },
+  setItem(key: string, value: string): void {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      memoryStorage[key] = value;
+    }
+  },
+  removeItem(key: string): void {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      delete memoryStorage[key];
+    }
+  }
+};
+
+export const safeSessionStorage = {
+  getItem(key: string): string | null {
+    try {
+      return sessionStorage.getItem(key);
+    } catch (e) {
+      return memorySessionStorage[key] || null;
+    }
+  },
+  setItem(key: string, value: string): void {
+    try {
+      sessionStorage.setItem(key, value);
+    } catch (e) {
+      memorySessionStorage[key] = value;
+    }
+  },
+  removeItem(key: string): void {
+    try {
+      sessionStorage.removeItem(key);
+    } catch (e) {
+      delete memorySessionStorage[key];
+    }
+  }
+};
+
 // Base Mock Data Seeds
 const DEFAULT_USERS: User[] = [
   { id: 1, username: "admin", password: "admin123", role: "Admin" },
@@ -222,26 +274,26 @@ class VehicleDb {
   }
 
   private init() {
-    if (!localStorage.getItem(this.key("users"))) {
-      localStorage.setItem(this.key("users"), JSON.stringify(DEFAULT_USERS));
+    if (!safeLocalStorage.getItem(this.key("users"))) {
+      safeLocalStorage.setItem(this.key("users"), JSON.stringify(DEFAULT_USERS));
     }
-    if (!localStorage.getItem(this.key("vehicles"))) {
-      localStorage.setItem(this.key("vehicles"), JSON.stringify(DEFAULT_VEHICLES));
+    if (!safeLocalStorage.getItem(this.key("vehicles"))) {
+      safeLocalStorage.setItem(this.key("vehicles"), JSON.stringify(DEFAULT_VEHICLES));
     }
-    if (!localStorage.getItem(this.key("transactions"))) {
-      localStorage.setItem(this.key("transactions"), JSON.stringify(DEFAULT_TRANSACTIONS));
+    if (!safeLocalStorage.getItem(this.key("transactions"))) {
+      safeLocalStorage.setItem(this.key("transactions"), JSON.stringify(DEFAULT_TRANSACTIONS));
     }
-    if (!localStorage.getItem(this.key("history"))) {
-      localStorage.setItem(this.key("history"), JSON.stringify(DEFAULT_HISTORY));
+    if (!safeLocalStorage.getItem(this.key("history"))) {
+      safeLocalStorage.setItem(this.key("history"), JSON.stringify(DEFAULT_HISTORY));
     }
-    if (!localStorage.getItem(this.key("audit_logs"))) {
-      localStorage.setItem(this.key("audit_logs"), JSON.stringify(DEFAULT_AUDIT_LOGS));
+    if (!safeLocalStorage.getItem(this.key("audit_logs"))) {
+      safeLocalStorage.setItem(this.key("audit_logs"), JSON.stringify(DEFAULT_AUDIT_LOGS));
     }
-    if (!localStorage.getItem(this.key("config"))) {
-      localStorage.setItem(this.key("config"), JSON.stringify(DEFAULT_CONFIG));
+    if (!safeLocalStorage.getItem(this.key("config"))) {
+      safeLocalStorage.setItem(this.key("config"), JSON.stringify(DEFAULT_CONFIG));
     }
-    if (!localStorage.getItem(this.key("purpose_options"))) {
-      localStorage.setItem(this.key("purpose_options"), JSON.stringify([
+    if (!safeLocalStorage.getItem(this.key("purpose_options"))) {
+      safeLocalStorage.setItem(this.key("purpose_options"), JSON.stringify([
         "Supplier Dispatch Delivery",
         "Customer Product Delivery",
         "Raw Material Return",
@@ -252,8 +304,8 @@ class VehicleDb {
         "Other Outward Trip"
       ]));
     }
-    if (!localStorage.getItem(this.key("department_options"))) {
-      localStorage.setItem(this.key("department_options"), JSON.stringify([
+    if (!safeLocalStorage.getItem(this.key("department_options"))) {
+      safeLocalStorage.setItem(this.key("department_options"), JSON.stringify([
         "Stores & Warehouse",
         "Plant Production Floor",
         "Quality & Safety Lab",
@@ -266,12 +318,12 @@ class VehicleDb {
 
   // Generic Get and Set
   private get<T>(name: string): T[] {
-    const data = localStorage.getItem(this.key(name));
+    const data = safeLocalStorage.getItem(this.key(name));
     return data ? JSON.parse(data) : [];
   }
 
   private set<T>(name: string, value: T[]) {
-    localStorage.setItem(this.key(name), JSON.stringify(value));
+    safeLocalStorage.setItem(this.key(name), JSON.stringify(value));
   }
 
   // Users
@@ -321,32 +373,32 @@ class VehicleDb {
 
   // Config
   getConfig(): SystemConfig {
-    const data = localStorage.getItem(this.key("config"));
+    const data = safeLocalStorage.getItem(this.key("config"));
     return data ? JSON.parse(data) : DEFAULT_CONFIG;
   }
 
   saveConfig(conf: SystemConfig) {
-    localStorage.setItem(this.key("config"), JSON.stringify(conf));
+    safeLocalStorage.setItem(this.key("config"), JSON.stringify(conf));
   }
 
   // Purpose Options
   getPurposes(): string[] {
-    const data = localStorage.getItem(this.key("purpose_options"));
+    const data = safeLocalStorage.getItem(this.key("purpose_options"));
     return data ? JSON.parse(data) : [];
   }
 
   savePurposes(purposes: string[]) {
-    localStorage.setItem(this.key("purpose_options"), JSON.stringify(purposes));
+    safeLocalStorage.setItem(this.key("purpose_options"), JSON.stringify(purposes));
   }
 
   // Department Options
   getDepartments(): string[] {
-    const data = localStorage.getItem(this.key("department_options"));
+    const data = safeLocalStorage.getItem(this.key("department_options"));
     return data ? JSON.parse(data) : [];
   }
 
   saveDepartments(departments: string[]) {
-    localStorage.setItem(this.key("department_options"), JSON.stringify(departments));
+    safeLocalStorage.setItem(this.key("department_options"), JSON.stringify(departments));
   }
 
   // Convenience functions
@@ -417,14 +469,14 @@ class VehicleDb {
   }
 
   resetToDefault() {
-    localStorage.removeItem(this.key("users"));
-    localStorage.removeItem(this.key("vehicles"));
-    localStorage.removeItem(this.key("transactions"));
-    localStorage.removeItem(this.key("history"));
-    localStorage.removeItem(this.key("audit_logs"));
-    localStorage.removeItem(this.key("config"));
-    localStorage.removeItem(this.key("purpose_options"));
-    localStorage.removeItem(this.key("department_options"));
+    safeLocalStorage.removeItem(this.key("users"));
+    safeLocalStorage.removeItem(this.key("vehicles"));
+    safeLocalStorage.removeItem(this.key("transactions"));
+    safeLocalStorage.removeItem(this.key("history"));
+    safeLocalStorage.removeItem(this.key("audit_logs"));
+    safeLocalStorage.removeItem(this.key("config"));
+    safeLocalStorage.removeItem(this.key("purpose_options"));
+    safeLocalStorage.removeItem(this.key("department_options"));
     this.init();
     this.addAuditLog("system", "RESET_DB", "Database reset to factory default values.");
   }

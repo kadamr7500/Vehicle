@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react";
 import { ArrowRight, QrCode, ClipboardCheck, LayoutGrid, CheckCircle2, ShieldAlert, AlertCircle, RefreshCw, Calendar, Clock } from "lucide-react";
 import { VehicleMaster, VehicleTransaction } from "../types";
 import { dbStore } from "../dbStore";
-import QrScanner from "./QrScanner";
 
 interface VehicleInViewProps {
   vehicles: VehicleMaster[];
@@ -10,6 +9,9 @@ interface VehicleInViewProps {
   onUpdateVehicles: (v: VehicleMaster[]) => void;
   onUpdateTransactions: (t: VehicleTransaction[]) => void;
   currentUser: any;
+  lastInwardScan?: string | null;
+  onClearInwardScan?: () => void;
+  inletScannerState?: any;
 }
 
 export default function VehicleInView({
@@ -18,8 +20,12 @@ export default function VehicleInView({
   onUpdateVehicles,
   onUpdateTransactions,
   currentUser,
+  lastInwardScan,
+  onClearInwardScan,
+  inletScannerState,
 }: VehicleInViewProps) {
   const [selectedVeh, setSelectedVeh] = useState<VehicleMaster | null>(null);
+  const [wedgeInput, setWedgeInput] = useState<string>("");
 
   // Identify active outbound transaction running for the chosen vehicle
   const activeTx = useMemo<VehicleTransaction | null>(() => {
@@ -35,6 +41,23 @@ export default function VehicleInView({
   const eligibleVehicles = useMemo(() => {
     return vehicles.filter((v) => v.status === "OUT");
   }, [vehicles]);
+
+  // Listen to background inlet scans
+  React.useEffect(() => {
+    if (lastInwardScan) {
+      handleQrLoad(lastInwardScan);
+      onClearInwardScan?.();
+    }
+  }, [lastInwardScan, onClearInwardScan]);
+
+  // Handle Keyboard Wedge Submit
+  const handleWedgeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = wedgeInput.trim();
+    if (!val) return;
+    handleQrLoad(val);
+    setWedgeInput("");
+  };
 
   // Format date helper
   const formatDateTime = (iso: string | null) => {
@@ -182,7 +205,7 @@ export default function VehicleInView({
     <div className="space-y-6">
       {/* Page header */}
       <div className="border-b border-slate-200 pb-5">
-        <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2 font-display">
           INWARD RETURN MONITOR (VEHICLE IN)
         </h1>
         <p className="text-xs text-slate-500 font-sans mt-0.5">
@@ -215,15 +238,71 @@ export default function VehicleInView({
         </div>
       )}
 
-      {/* Primary QR Scanning Section */}
-      <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl">
-        <div className="flex items-center gap-2 mb-4">
-          <QrCode className="w-5 h-5 text-indigo-600" />
-          <h2 className="text-sm font-extrabold text-slate-900 tracking-wider uppercase font-mono">
-            HARDWARE COM PORT SERIAL SCANNER LINK (VEHICLE IN RETURN)
-          </h2>
+      {/* Simplified Scanner Status Console */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        {/* Status indicator & Wedge */}
+        <div className="bg-slate-50 border border-slate-205 p-4 rounded-2xl flex flex-col justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="p-2 bg-blue-100/60 text-blue-700 rounded-xl shrink-0 mt-0.5">
+              <QrCode className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <h2 className="text-xxs font-black text-slate-800 tracking-wider uppercase font-mono">
+                Gate-In Scanner Status
+              </h2>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`w-2 h-2 rounded-full ${inletScannerState?.isConnected ? "bg-emerald-500 animate-pulse" : "bg-slate-350"}`} />
+                <span className="text-[10px] font-bold text-slate-500">
+                  {inletScannerState?.isConnected ? "HARDWIRED SCANNER LIVE COM" : "OFFLINE (Simulators Active)"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleWedgeSubmit} className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Aim scanner / type manually & Enter..."
+              value={wedgeInput}
+              onChange={(e) => setWedgeInput(e.target.value)}
+              className="flex-1 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xxs font-mono font-bold focus:outline-none focus:border-blue-500 text-slate-800 placeholder:text-slate-400 placeholder:font-sans"
+            />
+            <button
+              type="submit"
+              className="px-4 py-1.5 bg-slate-900 border border-slate-950 hover:bg-slate-800 text-white rounded-xl text-xxs font-black uppercase tracking-wider font-mono cursor-pointer transition-colors"
+            >
+              Feed
+            </button>
+          </form>
         </div>
-        <QrScanner onScanSuccess={handleQrLoad} activeMode="IN" />
+
+        {/* Emulate scanners */}
+        <div className="bg-slate-50 border border-slate-205 p-4 rounded-2xl space-y-2">
+          <span className="text-[9px] uppercase font-black text-slate-400 tracking-widest block font-mono">
+            Interactive gate code simulator (Click to Scan cargo badge)
+          </span>
+          {eligibleVehicles.length === 0 ? (
+            <div className="p-3 border border-dashed border-slate-200 rounded-xl text-center bg-white">
+              <p className="text-[10px] text-slate-400 font-bold">No registered vehicles are currently outside</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 max-h-24 overflow-y-auto pr-1">
+              {eligibleVehicles.map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => handleQrLoad(v.qr_code)}
+                  type="button"
+                  className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-blue-400 hover:bg-blue-50/10 rounded-xl text-xxs font-mono font-bold text-slate-800 flex items-center justify-between transition cursor-pointer text-left"
+                >
+                  <span className="truncate pr-1 uppercase">{v.vehicle_number}</span>
+                  <span className="text-[8px] px-1 bg-slate-100 text-slate-450 rounded uppercase shrink-0">Simulate Scan</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Workflow split grid */}
